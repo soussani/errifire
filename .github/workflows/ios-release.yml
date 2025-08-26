@@ -63,7 +63,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
             CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM=FHF48M4477 \
+            DEVELOPMENT_TEAM=PJXU23AGYX \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             clean archive | tee build/archive.log
 
