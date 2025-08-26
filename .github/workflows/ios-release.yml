@@ -49,13 +49,13 @@ jobs:
 
           echo "== Verify workspace exists =="
           ls -lah .
-          test -d yallalala.xcworkspace || { echo "❌ yallalala.xcworkspace not found"; exit 1; }
+          test -d ios/yallalala.xcworkspace || { echo "❌ ios/yallalala.xcworkspace not found"; exit 1; }
 
           echo "== List schemes in workspace =="
           xcodebuild -workspace yallalala.xcworkspace -list
 
           echo "== Try archive =="
-          xcodebuild -workspace yallalala.xcworkspace \
+          xcodebuild -workspace ios/yallalala.xcworkspace \
             -scheme yallalala \
             -configuration Release \
             -sdk iphoneos \
