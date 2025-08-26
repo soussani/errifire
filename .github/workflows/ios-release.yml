@@ -52,7 +52,7 @@ jobs:
           test -d ios/yallalala.xcworkspace || { echo "❌ ios/yallalala.xcworkspace not found"; exit 1; }
 
           echo "== List schemes in workspace =="
-          xcodebuild -workspace yallalala.xcworkspace -list
+          xcodebuild -workspace ios/yallalala.xcworkspace -list
 
           echo "== Try archive =="
           xcodebuild -workspace ios/yallalala.xcworkspace \
