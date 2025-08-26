@@ -1,0 +1,262 @@
+diff --git a/node_modules/react-native/Libraries/Components/DatePicker/DatePickerIOS.native.js b/node_modules/react-native/Libraries/Components/DatePicker/DatePickerIOS.native.js
+new file mode 100644
+index 0000000..15e888c
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/DatePicker/DatePickerIOS.native.js
+@@ -0,0 +1,2 @@
++// DatePickerIOS.native.js
++module.exports = require('./DatePickerIOS.ios');
+diff --git a/node_modules/react-native/Libraries/Components/DrawerAndroid/DrawerLayoutAndroid.native.js b/node_modules/react-native/Libraries/Components/DrawerAndroid/DrawerLayoutAndroid.native.js
+new file mode 100644
+index 0000000..c41229d
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/DrawerAndroid/DrawerLayoutAndroid.native.js
+@@ -0,0 +1,3 @@
++// DrawerLayoutAndroid.native.js
++// Re-export your existing .ios implementation so Metro can find it
++module.exports = require('./DrawerLayoutAndroid.ios');
+\ No newline at end of file
+diff --git a/node_modules/react-native/Libraries/Components/MaskedView/MaskedViewIOS.native.js b/node_modules/react-native/Libraries/Components/MaskedView/MaskedViewIOS.native.js
+new file mode 100644
+index 0000000..96d7cd3
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/MaskedView/MaskedViewIOS.native.js
+@@ -0,0 +1,15 @@
++// MaskedViewIOS.native.js
++import * as React from 'react';
++import { Platform, View } from 'react-native';
++
++export default function MaskedViewIOS(props) {
++  if (Platform.OS === 'ios') {
++    // use the real iOS implementation that you already have
++    const Real = require('./MaskedViewIOS.ios').default;
++    return <Real {...props} />;
++  } else {
++    // Android (or any other platform): no‐op passthrough
++    // (or you could pull in a community masked-view here)
++    return <View {...props}>{props.children}</View>;
++  }
++}
+diff --git a/node_modules/react-native/Libraries/Components/ProgressBarAndroid/ProgressBarAndroid.native.js b/node_modules/react-native/Libraries/Components/ProgressBarAndroid/ProgressBarAndroid.native.js
+new file mode 100644
+index 0000000..6cbcece
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/ProgressBarAndroid/ProgressBarAndroid.native.js
+@@ -0,0 +1,16 @@
++// ProgressBarAndroid.native.js
++import * as React from 'react';
++import { Platform } from 'react-native';
++
++let Impl;
++if (Platform.OS === 'android') {
++  // use the real Android component
++  Impl = require('./ProgressBarAndroid.android').default;
++} else {
++  // on iOS, fall back to ProgressViewIOS
++  Impl = require('../ProgressViewIOS/ProgressViewIOS').default;
++}
++
++export default function ProgressBarAndroid(props) {
++  return <Impl {...props} />;
++}
+diff --git a/node_modules/react-native/Libraries/Components/ProgressViewIOS/ProgressViewIOS.native.js b/node_modules/react-native/Libraries/Components/ProgressViewIOS/ProgressViewIOS.native.js
+new file mode 100644
+index 0000000..5b3bc5c
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/ProgressViewIOS/ProgressViewIOS.native.js
+@@ -0,0 +1,16 @@
++// ProgressViewIOS.native.js
++import * as React from 'react';
++import { Platform, View } from 'react-native';
++
++// Use the real iOS implementation if available, otherwise fallback
++let Impl;
++if (Platform.OS === 'ios') {
++  Impl = require('./ProgressViewIOS.ios').default;
++} else {
++  // If not iOS, we can return an empty component for Android or others
++  Impl = View;
++}
++
++export default function ProgressViewIOS(props) {
++  return <Impl {...props} />;
++}
+diff --git a/node_modules/react-native/Libraries/Components/SegmentedControlIOS/SegmentedControlIOS.native.js b/node_modules/react-native/Libraries/Components/SegmentedControlIOS/SegmentedControlIOS.native.js
+new file mode 100644
+index 0000000..084427e
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/SegmentedControlIOS/SegmentedControlIOS.native.js
+@@ -0,0 +1,16 @@
++// SegmentedControlIOS.native.js
++import * as React from 'react';
++import { Platform, View } from 'react-native';
++
++// Use the real iOS implementation if available, otherwise fallback
++let Impl;
++if (Platform.OS === 'ios') {
++  Impl = require('./SegmentedControlIOS.ios').default;
++} else {
++  // For non-iOS platforms, return an empty View or a different component
++  Impl = View;
++}
++
++export default function SegmentedControlIOS(props) {
++  return <Impl {...props} />;
++}
+diff --git a/node_modules/react-native/Libraries/Components/ToastAndroid/ToastAndroid.native.js b/node_modules/react-native/Libraries/Components/ToastAndroid/ToastAndroid.native.js
+new file mode 100644
+index 0000000..ee72b70
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Components/ToastAndroid/ToastAndroid.native.js
+@@ -0,0 +1,20 @@
++// ToastAndroid.native.js
++import { Platform, ToastAndroid as RNToastAndroid } from 'react-native';
++
++if (Platform.OS === 'android') {
++  // On Android, use the real ToastAndroid implementation
++  module.exports = RNToastAndroid;
++} else {
++  // For non-Android platforms, create a mock of ToastAndroid
++  module.exports = {
++    show: () => {
++      console.warn('ToastAndroid is not available on this platform');
++    },
++    showWithGravity: () => {
++      console.warn('ToastAndroid.showWithGravity is not available on this platform');
++    },
++    showWithGravityAndOffset: () => {
++      console.warn('ToastAndroid.showWithGravityAndOffset is not available on this platform');
++    },
++  };
++}
+diff --git a/node_modules/react-native/Libraries/Network/RCTNetworking.native.js b/node_modules/react-native/Libraries/Network/RCTNetworking.native.js
+new file mode 100644
+index 0000000..73b2217
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Network/RCTNetworking.native.js
+@@ -0,0 +1,14 @@
++// RCTNetworking.native.js
++import { Platform } from 'react-native';
++
++if (Platform.OS === 'ios') {
++  // Use the native iOS networking module
++  module.exports = require('react-native').Networking;
++} else {
++  // For Android (or any other platform), mock it or provide a no-op implementation
++  module.exports = {
++    sendRequest: () => {
++      console.warn('RCTNetworking is not available on this platform');
++    },
++  };
++}
+diff --git a/node_modules/react-native/Libraries/Settings/Settings.native.js b/node_modules/react-native/Libraries/Settings/Settings.native.js
+new file mode 100644
+index 0000000..7cf7273
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Settings/Settings.native.js
+@@ -0,0 +1,19 @@
++// Settings.native.js
++import { Platform } from 'react-native';
++
++// This module is typically used for iOS. Let's mock it for Android (or other platforms).
++if (Platform.OS === 'ios') {
++  // You may replace this with the real iOS implementation if available.
++  module.exports = require('react-native').Settings;
++} else {
++  // For Android or other platforms, return a no-op object or mock implementation
++  module.exports = {
++    get: (key) => {
++      console.warn('Settings.get is not available on this platform');
++      return null;
++    },
++    set: (key, value) => {
++      console.warn('Settings.set is not available on this platform');
++    },
++  };
++}
+diff --git a/node_modules/react-native/Libraries/StyleSheet/PlatformColorValueTypes.native.js b/node_modules/react-native/Libraries/StyleSheet/PlatformColorValueTypes.native.js
+new file mode 100644
+index 0000000..ba5afd1
+--- /dev/null
++++ b/node_modules/react-native/Libraries/StyleSheet/PlatformColorValueTypes.native.js
+@@ -0,0 +1,16 @@
++// PlatformColorValueTypes.native.js
++import { Platform } from 'react-native';
++
++// Mock the necessary exports, or use a placeholder for non-iOS platforms.
++if (Platform.OS === 'ios') {
++  module.exports = {
++    PlatformColor: (color) => color,  // A simple identity function for iOS
++    DynamicColorIOS: () => {},  // Placeholder for DynamicColorIOS if needed
++  };
++} else {
++  // For non-iOS platforms, return a no-op object
++  module.exports = {
++    PlatformColor: (color) => color, // Mock behavior for non-iOS platforms
++    DynamicColorIOS: () => {},       // Mock for DynamicColorIOS
++  };
++}
+diff --git a/node_modules/react-native/Libraries/Utilities/BackHandler.native.js b/node_modules/react-native/Libraries/Utilities/BackHandler.native.js
+new file mode 100644
+index 0000000..83bc6de
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Utilities/BackHandler.native.js
+@@ -0,0 +1,14 @@
++// BackHandler.native.js
++import { Platform } from 'react-native';
++
++// For iOS, use the actual BackHandler implementation if necessary
++if (Platform.OS === 'ios') {
++  module.exports = require('react-native').BackHandler;
++} else {
++  // On Android or other platforms, we can just return a no-op (empty object)
++  module.exports = {
++    addEventListener: () => {},
++    removeEventListener: () => {},
++    exitApp: () => {},
++  };
++}
+diff --git a/node_modules/react-native/Libraries/Utilities/Platform.native.js b/node_modules/react-native/Libraries/Utilities/Platform.native.js
+new file mode 100644
+index 0000000..7065cbc
+--- /dev/null
++++ b/node_modules/react-native/Libraries/Utilities/Platform.native.js
+@@ -0,0 +1,5 @@
++// Platform.native.js
++import { Platform as RNPlatform } from 'react-native';
++
++// Export the real Platform module (which is already available)
++module.exports = RNPlatform;
+diff --git a/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.cpp b/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.cpp
+index 9986279..fe4645c 100644
+--- a/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.cpp
++++ b/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.cpp
+@@ -2229,7 +2229,7 @@ static float YGDistributeFreeSpaceSecondPass(
+         depth,
+         generationCount);
+     node->setLayoutHadOverflow(
+-        node->getLayout().hadOverflow() |
++        node->getLayout().hadOverflow() or
+         currentRelativeChild->getLayout().hadOverflow());
+   }
+   return deltaFreeSpace;
+diff --git a/node_modules/react-native/scripts/.packager.env b/node_modules/react-native/scripts/.packager.env
+new file mode 100644
+index 0000000..361f5fb
+--- /dev/null
++++ b/node_modules/react-native/scripts/.packager.env
+@@ -0,0 +1 @@
++export RCT_METRO_PORT=8081
+diff --git a/node_modules/react-native/third-party-podspecs/boost.podspec b/node_modules/react-native/third-party-podspecs/boost.podspec
+index 2f1fcc4..fa82134 100644
+--- a/node_modules/react-native/third-party-podspecs/boost.podspec
++++ b/node_modules/react-native/third-party-podspecs/boost.podspec
+@@ -10,7 +10,7 @@ Pod::Spec.new do |spec|
+   spec.homepage = 'http://www.boost.org'
+   spec.summary = 'Boost provides free peer-reviewed portable C++ source libraries.'
+   spec.authors = 'Rene Rivera'
+-  spec.source = { :http => 'https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2',
++  spec.source = { :http => 'https://archives.boost.io/release/1.76.0/source/boost_1_76_0.tar.bz2',
+                   :sha256 => 'f0397ba6e982c4450f27bf32a2a83292aba035b827a5623a14636ea583318c41' }
+ 
+   # Pinning to the same version as React.podspec.
