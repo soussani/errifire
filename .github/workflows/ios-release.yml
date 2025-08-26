@@ -45,14 +45,14 @@ jobs:
 
       - name: Xcode archive (uses committed Pods and node_modules)
         run: |
-          xcodebuild -workspace ios/yallalala.xcworkspace \   # <<< replace with your workspace path
-            -scheme yallalala \                           # <<< replace with your shared scheme
+          xcodebuild -workspace ios/yallalala.xcworkspace \
+            -scheme yallalala \
             -configuration Release \
             -sdk iphoneos \
             -archivePath build/App.xcarchive \
             CODE_SIGNING_REQUIRED=YES \
             CODE_SIGNING_ALLOWED=YES \
-            PROVISIONING_PROFILE_SPECIFIER=$PROFILE_UUID \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             clean archive | xcpretty
 
       - name: Export .ipa (App Store)
