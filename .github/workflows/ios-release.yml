@@ -57,8 +57,10 @@ jobs:
 
       - name: Export .ipa (App Store)
         env:
-          YOUR_BUNDLE_ID: com.ardeco.errifire          # <<< replace with your bundle id
+          YOUR_BUNDLE_ID: com.ardeco.errifire   # ← keep your bundle id
         run: |
+          set -e
+          mkdir -p build/ipa
           cat > ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -74,17 +76,39 @@ jobs:
             </dict>
           </plist>
           PLIST
+
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath build | xcpretty
+            -exportPath build/ipa | xcpretty
+
+          echo "––– Export contents –––"
+          ls -lah build/ipa
+
+          IPA_PATH=$(ls build/ipa/*.ipa | head -n 1 || true)
+          if [ -z "$IPA_PATH" ]; then
+            echo "❌ No .ipa produced. Check code signing/export logs above."
+            exit 1
+          fi
+          echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
 
       - name: Upload .ipa directly to App Store
         run: |
-          fastlane deliver --ipa build/*.ipa \
-                           --skip_screenshots \
-                           --skip_metadata \
-                           --force
+          # If the repo has a Gemfile, use bundle exec; otherwise call fastlane directly.
+          if [ -f Gemfile ]; then
+            bundle install --path vendor/bundle
+            bundle exec fastlane deliver \
+              --ipa "$IPA_PATH" \
+              --skip_screenshots \
+              --skip_metadata \
+              --force
+          else
+            fastlane deliver \
+              --ipa "$IPA_PATH" \
+              --skip_screenshots \
+              --skip_metadata \
+              --force
+          fi
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
