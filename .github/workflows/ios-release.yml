@@ -48,7 +48,7 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp ~/certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
-      - name: Xcode archive (robust, Xcode 16)
+      - name: Xcode archive (Automatic signing, no pod signing)
         run: |
           set -eo pipefail
           mkdir -p build
@@ -62,9 +62,8 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
-            CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM=FHF48M4477 \
             clean archive | tee build/archive.log
 
           echo "== Check archive path =="
@@ -74,6 +73,7 @@ jobs:
             tail -n 200 build/archive.log; 
             exit 1; 
           }
+
 
 
 
