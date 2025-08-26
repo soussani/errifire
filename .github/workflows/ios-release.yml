@@ -62,8 +62,9 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=FHF48M4477 \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             clean archive | tee build/archive.log
 
           echo "== Check archive path =="
