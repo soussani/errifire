@@ -43,14 +43,18 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp ~/certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
-      - name: Xcode archive (debug)
+      - name: Xcode archive (robust, with diagnostics)
         run: |
-          set -e
-          echo "Listing workspace contents:"
-          ls -R ios
-          echo "Listing available schemes:"
+          set -eo pipefail
+
+          echo "== Verify workspace exists =="
+          ls -lah ios || true
+          test -f ios/yallalala.xcworkspace || { echo "❌ ios/yallalala.xcworkspace not found"; exit 1; }
+
+          echo "== List schemes in workspace =="
           xcodebuild -workspace ios/yallalala.xcworkspace -list
 
+          echo "== Try archive =="
           xcodebuild -workspace ios/yallalala.xcworkspace \
             -scheme yallalala \
             -configuration Release \
@@ -59,12 +63,20 @@ jobs:
             CODE_SIGNING_REQUIRED=YES \
             CODE_SIGNING_ALLOWED=YES \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            clean archive | xcpretty
+            clean archive | tee build/archive.log
 
+          # Ensure archive actually exists
+          echo "== Check archive path =="
+          ls -lah build || true
+          test -d build/App.xcarchive || { 
+            echo "❌ Archive was not produced. Showing last 200 lines of archive log for clues:"; 
+            tail -n 200 build/archive.log; 
+            exit 1; 
+          }
 
       - name: Export .ipa (App Store)
         env:
-          YOUR_BUNDLE_ID: com.ardeco.errifire   # ← keep your bundle id
+          YOUR_BUNDLE_ID: com.ardeco.errifire
         run: |
           set -e
           mkdir -p build/ipa
@@ -87,14 +99,15 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath build/ipa | xcpretty
+            -exportPath build/ipa | tee build/export.log
 
-          echo "––– Export contents –––"
+          echo "== Export contents =="
           ls -lah build/ipa
 
           IPA_PATH=$(ls build/ipa/*.ipa | head -n 1 || true)
           if [ -z "$IPA_PATH" ]; then
-            echo "❌ No .ipa produced. Check code signing/export logs above."
+            echo "❌ No .ipa produced. Showing last 200 lines of export log:"
+            tail -n 200 build/export.log
             exit 1
           fi
           echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
