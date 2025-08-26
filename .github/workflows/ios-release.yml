@@ -28,53 +28,43 @@ jobs:
       - name: Install signing
         shell: bash
         env:
-          IOS_CERT_BASE64: ${{ secrets.IOS_CERT_BASE64 }}      # .p12 (Apple Distribution) base64
-          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}  # .p12 password
-          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}# App Store .mobileprovision base64
+          # .p12 (Apple Distribution) base64
+          IOS_CERT_BASE64: ${{ secrets.IOS_CERT_BASE64 }}
+          # .p12 password
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          # App Store .mobileprovision base64
+          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
         run: |
           set -euo pipefail
-
           mkdir -p ~/certs
           echo "$IOS_CERT_BASE64" | base64 --decode > ~/certs/dist.p12
           echo "$IOS_PROFILE_BASE64" | base64 --decode > ~/certs/profile.mobileprovision
-
-          # Create an unlocked throwaway keychain for codesigning
           KEYCHAIN=build.keychain
           KEYCHAIN_PWD=""
           security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
           security set-keychain-settings "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
-
-          # Make sure our keychain is searched first (keep login/system too)
           security list-keychains -d user -s "$HOME/Library/Keychains/$KEYCHAIN" login.keychain-db /Library/Keychains/System.keychain
           security default-keychain -s "$HOME/Library/Keychains/$KEYCHAIN"
-
-          # Import Distribution cert
           security import ~/certs/dist.p12 -k "$HOME/Library/Keychains/$KEYCHAIN" -P "$IOS_CERT_PASSWORD" -A
-          # Allow Xcode / codesign to use the key silently
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" "$HOME/Library/Keychains/$KEYCHAIN"
-
-          # Install provisioning profile and extract its UUID and Team info
           PROFILE_PATH=~/certs/profile.mobileprovision
           PROFILE_PLIST=$(security cms -D -i "$PROFILE_PATH")
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< "$PROFILE_PLIST")
           TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /dev/stdin <<< "$PROFILE_PLIST")
           APP_ID_PREFIX=$(/usr/libexec/PlistBuddy -c 'Print :ApplicationIdentifierPrefix:0' /dev/stdin <<< "$PROFILE_PLIST")
           GET_TASK_ALLOW=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' /dev/stdin <<< "$PROFILE_PLIST" || echo "false")
-
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
           echo "TEAM_ID=$TEAM_ID" >> $GITHUB_ENV
           echo "APP_ID_PREFIX=$APP_ID_PREFIX" >> $GITHUB_ENV
           echo "GET_TASK_ALLOW=$GET_TASK_ALLOW" >> $GITHUB_ENV
-
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-
           echo "✅ Installed profile $PROFILE_UUID (team: $TEAM_ID, get-task-allow: $GET_TASK_ALLOW)"
 
       - name: Xcode archive (Manual signing with Distribution cert)
         env:
-          DEV_TEAM: PJXU23AGYX               # <-- your team for this app
+          DEV_TEAM: PJXU23AGYX
         run: |
           set -eo pipefail
           mkdir -p build
@@ -83,25 +73,23 @@ jobs:
           xcodebuild -workspace ios/yallalala.xcworkspace -list
 
           echo "== Archive =="
+          # comment on its own line:
+          # Using generic identity matcher is fine as long as the correct Distribution cert is in keychain.
           xcodebuild -workspace ios/yallalala.xcworkspace \
             -scheme yallalala \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
             CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM=PJXU23AGYX \
-            CODE_SIGN_IDENTITY="Apple Distribution" \   # ← add this
+            DEVELOPMENT_TEAM=$DEV_TEAM \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             clean archive | tee build/archive.log
 
-
           echo "== Check archive path =="
           ls -lah build
-          test -d build/App.xcarchive || { 
-            echo "❌ Archive missing. Tail of archive.log:"; 
-            tail -n 200 build/archive.log; 
-            exit 1; 
-          }
+          test -d build/App.xcarchive || { tail -n 200 build/archive.log; exit 1; }
+
 
       - name: Export .ipa (App Store)
         env:
