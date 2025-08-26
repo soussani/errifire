@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout
@@ -18,6 +18,11 @@ jobs:
         uses: ruby/setup-ruby@v1
         with: { ruby-version: '3.2' }
       - run: gem install fastlane
+
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16'
 
       # Install signing cert & provisioning profile from your GitHub Secrets
       - name: Install signing
@@ -43,27 +48,33 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp ~/certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
-      - name: Xcode archive (robust, with diagnostics)
+      - name: Xcode archive (robust, Xcode 16)
         run: |
           set -eo pipefail
+          mkdir -p build
 
-          echo "== Verify workspace exists =="
-          ls -lah .
-          test -d ios/yallalala.xcworkspace || { echo "❌ ios/yallalala.xcworkspace not found"; exit 1; }
-
-          echo "== List schemes in workspace =="
+          echo "== List schemes =="
           xcodebuild -workspace ios/yallalala.xcworkspace -list
 
-          echo "== Try archive =="
+          echo "== Archive =="
           xcodebuild -workspace ios/yallalala.xcworkspace \
             -scheme yallalala \
             -configuration Release \
-            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
             CODE_SIGNING_REQUIRED=YES \
             CODE_SIGNING_ALLOWED=YES \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             clean archive | tee build/archive.log
+
+          echo "== Check archive path =="
+          ls -lah build
+          test -d build/App.xcarchive || { 
+            echo "❌ Archive missing. Tail of archive.log:"; 
+            tail -n 200 build/archive.log; 
+            exit 1; 
+          }
+
 
 
       - name: Export .ipa (App Store)
