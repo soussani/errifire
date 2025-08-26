@@ -43,8 +43,14 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp ~/certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
 
-      - name: Xcode archive (uses committed Pods and node_modules)
+      - name: Xcode archive (debug)
         run: |
+          set -e
+          echo "Listing workspace contents:"
+          ls -R ios
+          echo "Listing available schemes:"
+          xcodebuild -workspace ios/yallalala.xcworkspace -list
+
           xcodebuild -workspace ios/yallalala.xcworkspace \
             -scheme yallalala \
             -configuration Release \
@@ -54,6 +60,7 @@ jobs:
             CODE_SIGNING_ALLOWED=YES \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             clean archive | xcpretty
+
 
       - name: Export .ipa (App Store)
         env:
