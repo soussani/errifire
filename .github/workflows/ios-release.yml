@@ -1,0 +1,94 @@
+name: iOS Release (App Store)
+
+on:
+  workflow_dispatch: {}   # you trigger it manually
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby & fastlane
+        uses: ruby/setup-ruby@v1
+        with: { ruby-version: '3.2' }
+      - run: gem install fastlane
+
+      # If you have Podfile.lock, this is safe.
+      # If you want ZERO pod changes, commit Pods/ to repo and delete these two steps.
+      - name: Set up CocoaPods
+        uses: maxim-lobanov/setup-cocoapods@v1
+      - name: Pod install
+        run: pod install --repo-update
+
+      - name: Install signing
+        shell: bash
+        env:
+          IOS_CERT_BASE64: ${{ secrets.IOS_CERT_BASE64 }}
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+        run: |
+          mkdir -p ~/certs
+          echo "$IOS_CERT_BASE64" | base64 --decode > ~/certs/dist.p12
+          echo "$IOS_PROFILE_BASE64" | base64 --decode > ~/certs/profile.mobileprovision
+
+          security create-keychain -p "" build.keychain
+          security import ~/certs/dist.p12 -k ~/Library/Keychains/build.keychain -P "$IOS_CERT_PASSWORD" -A
+          security list-keychains -d user -s ~/Library/Keychains/build.keychain
+          security default-keychain -s ~/Library/Keychains/build.keychain
+          security unlock-keychain -p "" ~/Library/Keychains/build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" ~/Library/Keychains/build.keychain
+
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< "$(security cms -D -i ~/certs/profile.mobileprovision)")
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp ~/certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+
+      - name: Xcode archive
+        run: |
+          xcodebuild -workspace ios/yallalala.xcworkspace \   # 👈 replace with your path
+            -scheme yallalala \                           # 👈 replace with your scheme
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/App.xcarchive \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES \
+            PROVISIONING_PROFILE_SPECIFIER=$PROFILE_UUID \
+            clean archive | xcpretty
+
+      - name: Export .ipa
+        env:
+          YOUR_BUNDLE_ID: com.ardeco.errifire   # 👈 replace with your bundle id
+        run: |
+          cat > ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+            <dict>
+              <key>method</key><string>app-store</string>
+              <key>signingStyle</key><string>manual</string>
+              <key>uploadSymbols</key><true/>
+              <key>provisioningProfiles</key>
+              <dict>
+                <key>${YOUR_BUNDLE_ID}</key><string>${PROFILE_UUID}</string>
+              </dict>
+            </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build | xcpretty
+
+      - name: Upload to App Store
+        run: |
+          fastlane deliver --ipa build/*.ipa \
+                           --skip_screenshots \
+                           --skip_metadata \
+                           --force
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
