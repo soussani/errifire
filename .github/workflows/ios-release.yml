@@ -16,8 +16,9 @@ jobs:
 
       - name: Set up Ruby & fastlane
         uses: ruby/setup-ruby@v1
-        with: { ruby-version: '3.2.9' }
-      - run: gem install fastlane
+        with: 
+          ruby-version: '3.2.9'
+          bundler-cache: true
 
       - name: Select Xcode 16
         uses: maxim-lobanov/setup-xcode@v1
@@ -62,6 +63,13 @@ jobs:
           cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
           echo "✅ Installed profile $PROFILE_UUID (team: $TEAM_ID, get-task-allow: $GET_TASK_ALLOW)"
 
+      - name: Debug keychain and certificates
+        run: |
+          echo "== Available code signing identities =="
+          security find-identity -v -p codesigning
+          echo "== Available keychains =="
+          security list-keychains
+
       - name: Xcode archive (Manual signing with Distribution cert)
         env:
           DEV_TEAM: PJXU23AGYX
@@ -73,7 +81,6 @@ jobs:
           xcodebuild -workspace ios/yallalala.xcworkspace -list
 
           echo "== Archive =="
-          # comment on its own line:
           # Using generic identity matcher is fine as long as the correct Distribution cert is in keychain.
           xcodebuild -workspace ios/yallalala.xcworkspace \
             -scheme yallalala \
@@ -89,7 +96,6 @@ jobs:
           echo "== Check archive path =="
           ls -lah build
           test -d build/App.xcarchive || { tail -n 200 build/archive.log; exit 1; }
-
 
       - name: Export .ipa (App Store)
         env:
@@ -133,15 +139,14 @@ jobs:
 
       - name: Upload .ipa directly to App Store
         run: |
-          # If the repo has a Gemfile, use bundle exec; otherwise call fastlane directly.
           if [ -f Gemfile ]; then
-            bundle install --path vendor/bundle
             bundle exec fastlane deliver \
               --ipa "$IPA_PATH" \
               --skip_screenshots \
               --skip_metadata \
               --force
           else
+            gem install fastlane
             fastlane deliver \
               --ipa "$IPA_PATH" \
               --skip_screenshots \
