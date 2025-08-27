@@ -137,22 +137,17 @@ jobs:
           fi
           echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
 
+      - name: Write API key file
+        run: |
+          echo "$APPSTORE_API_KEY_JSON" | base64 --decode > api_key.json
+        env:
+          APPSTORE_API_KEY_JSON: ${{ secrets.APPSTORE_API_KEY_JSON }}
+
       - name: Upload .ipa directly to App Store
         run: |
-          if [ -f Gemfile ]; then
-            bundle exec fastlane deliver \
-              --ipa "$IPA_PATH" \
-              --skip_screenshots \
-              --skip_metadata \
-              --force
-          else
-            fastlane deliver \
-              --ipa "$IPA_PATH" \
-              --skip_screenshots \
-              --skip_metadata \
-              --force
-          fi
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          fastlane deliver \
+            --ipa "$IPA_PATH" \
+            --skip_screenshots \
+            --skip_metadata \
+            --force \
+            --api_key_path api_key.json
