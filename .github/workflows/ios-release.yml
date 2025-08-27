@@ -16,7 +16,7 @@ jobs:
 
       - name: Set up Ruby & fastlane
         uses: ruby/setup-ruby@v1
-        with: { ruby-version: '3.2' }
+        with: { ruby-version: '2.7.4' }
       - run: gem install fastlane
 
       - name: Select Xcode 16
