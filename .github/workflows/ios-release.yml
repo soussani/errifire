@@ -139,29 +139,18 @@ jobs:
 
       - name: Upload .ipa directly to App Store
         run: |
-          # Create App Store Connect API key file
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_API_KEY" > ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
-          
           if [ -f Gemfile ]; then
             bundle exec fastlane deliver \
               --ipa "$IPA_PATH" \
               --skip_screenshots \
               --skip_metadata \
-              --force \
-              --api_key_path ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8 \
-              --issuer_id "$APP_STORE_CONNECT_API_ISSUER_ID" \
-              --key_id "$APP_STORE_CONNECT_API_KEY_ID"
+              --force
           else
-            gem install fastlane
             fastlane deliver \
               --ipa "$IPA_PATH" \
               --skip_screenshots \
               --skip_metadata \
-              --force \
-              --api_key_path ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8 \
-              --issuer_id "$APP_STORE_CONNECT_API_ISSUER_ID" \
-              --key_id "$APP_STORE_CONNECT_API_KEY_ID"
+              --force
           fi
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
